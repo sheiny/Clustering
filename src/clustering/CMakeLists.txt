@@ -1,0 +1,10 @@
+if(CUDA_FOUND)
+    file(GLOB src_clustering_SRC "*.h" "*.cpp" "*.cu")
+    cuda_add_library(src_clustering ${src_clustering_SRC})
+else()
+    file(GLOB src_clustering_SRC "*.h" "*.cpp")
+    add_library(src_clustering ${src_clustering_SRC})
+endif()
+
+install(TARGETS src_clustering DESTINATION lib)
+install(FILES kmeans.h DESTINATION include/src/clustering)

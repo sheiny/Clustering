@@ -44,6 +44,7 @@ public:
     Kmeans(){}
     const Cluster & cluster(unsigned int i) const {return clusters.at(i);}
     const Element & element(unsigned int i) const {return elements.at(i);}
+    const std::vector<Element> & k_elements() const {return elements;}
     void reserve_clusters(std::size_t size){clusters.reserve(size);}
     void reserve_elements(std::size_t size){elements.reserve(size);}
     void add_cluster(float pos_x, float pos_y){clusters.push_back(Cluster(pos_x, pos_y));}

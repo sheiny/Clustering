@@ -41,3 +41,9 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).x() == 10);
     REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
 }
+
+TEST_CASE_METHOD(KmeansCircuit,"Kmeans: Kmeans circuit test.", "[kmeans]"){
+    KmeansCircuit::read_file("./input_files/superblue18.dat");
+    generate_clusters();
+    kmeans.kmeans(10);
+}

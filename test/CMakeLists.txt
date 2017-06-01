@@ -14,3 +14,5 @@ else()
     add_executable( run_tests ${SOURCE} ${HEADERS} )
     target_link_libraries(run_tests Catch src_clustering)
 endif()
+
+execute_process(COMMAND ln -s ${CMAKE_SOURCE_DIR}/test/input_files ${CMAKE_BINARY_DIR}/test/. RESULT_VARIABLE result )

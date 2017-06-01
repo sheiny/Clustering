@@ -2,6 +2,9 @@
 #define KMEANS_TEST_H
 
 #include <src/clustering/kmeans.h>
+#include <fstream>
+#include <stdlib.h>
+#include <time.h>
 
 class KmeansFixture {
 public:
@@ -37,6 +40,36 @@ public:
         kmeans.add_element(11, 4);
         kmeans.add_element(11, 11);
     }
+    clustering::Kmeans kmeans;
+};
+
+class KmeansCircuit {
+public:
+    KmeansCircuit(){
+    }
+
+    void read_file(std::string file_path){
+        std::ifstream input_file(file_path);
+        std::string word;
+        while(input_file>>word){
+            float x = std::stof(word);
+            input_file>>word;
+            float y = std::stof(word);
+            kmeans.add_element(x, y);
+        }
+    }
+
+    void generate_clusters(){
+        std::pair<float, float> max_coordinate(0, 0);
+        for(auto element : kmeans.k_elements()){
+            max_coordinate.first = std::max(max_coordinate.first,  element.x());
+            max_coordinate.second = std::max(max_coordinate.second,  element.y());
+        }
+        srand(42);
+        for(unsigned int i = 0; i < 100; ++i)
+            kmeans.add_cluster(rand()%(int)max_coordinate.first, rand()%(int)max_coordinate.second);
+    }
+
     clustering::Kmeans kmeans;
 };
 

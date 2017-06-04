@@ -1,5 +1,5 @@
 #include <catch.hpp>
-#include "kmeans_test.h"
+#include "kmeans_fixture.h"
 #include <src/clustering/kmeans.h>
 
 TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
@@ -42,8 +42,18 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
 }
 
-TEST_CASE_METHOD(KmeansCircuit,"Kmeans: Kmeans circuit test.", "[kmeans]"){
-    KmeansCircuit::read_file("./input_files/superblue18.dat");
-    generate_clusters();
-    kmeans.kmeans(10);
+TEST_CASE("Kmeans: Kmeans circuit test.", "[kmeans] [parallel]"){
+    KmeansCircuit sequential, parallel;
+    for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
+        sequential.read_file("./input_files/"+circuit_name+".dat");
+        parallel.read_file("./input_files/"+circuit_name+".dat");
+        parallel.generate_clusters(100);
+        sequential.generate_clusters(100);
+        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel.kmeans.k_clusters().begin(), fixture::cluster_comparison));
+        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::element_comparison));
+        sequential.kmeans.kmeans(3);
+        parallel.kmeans.p_kmeans(3);
+        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::cluster_assignment_comparsion));
+        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel.kmeans.k_clusters().begin(), fixture::cluster_comparison));
+    }
 }

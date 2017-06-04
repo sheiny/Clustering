@@ -1,10 +1,15 @@
-#ifndef KMEANS_TEST_H
-#define KMEANS_TEST_H
+#ifndef KMEANS_FIXTURE_H
+#define KMEANS_FIXTURE_H
 
 #include <src/clustering/kmeans.h>
 #include <fstream>
 #include <stdlib.h>
-#include <time.h>
+
+namespace fixture{
+bool element_comparison(const clustering::Element & e1, const clustering::Element & e2);
+bool cluster_comparison(const clustering::Cluster & c1, const clustering::Cluster & c2);
+bool cluster_assignment_comparsion(const clustering::Element & e1, const clustering::Element & e2);
+} //namespace fixture
 
 class KmeansFixture {
 public:
@@ -50,7 +55,15 @@ public:
 
     void read_file(std::string file_path){
         std::ifstream input_file(file_path);
+        unsigned int n_elements = 0;
         std::string word;
+        while(input_file>>word){
+            input_file>>word;
+            ++n_elements;
+        }
+        kmeans.reserve_elements(n_elements);
+        input_file.close();
+        input_file.open(file_path);
         while(input_file>>word){
             float x = std::stof(word);
             input_file>>word;
@@ -59,18 +72,19 @@ public:
         }
     }
 
-    void generate_clusters(){
+    void generate_clusters(unsigned int n_clusters){
         std::pair<float, float> max_coordinate(0, 0);
         for(auto element : kmeans.k_elements()){
             max_coordinate.first = std::max(max_coordinate.first,  element.x());
             max_coordinate.second = std::max(max_coordinate.second,  element.y());
         }
         srand(42);
-        for(unsigned int i = 0; i < 100; ++i)
+        kmeans.reserve_clusters(n_clusters);
+        for(unsigned int i = 0; i < n_clusters; ++i)
             kmeans.add_cluster(rand()%(int)max_coordinate.first, rand()%(int)max_coordinate.second);
     }
 
     clustering::Kmeans kmeans;
 };
 
-#endif // KMEANS_TEST_H
+#endif // KMEANS_FIXTURE_H

@@ -1,5 +1,5 @@
 #include <catch.hpp>
-#include "../clustering/kmeans_test.h"
+#include "../clustering/kmeans_fixture.h"
 
 TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test for GPU.", "[kmeans]")
 {
@@ -14,7 +14,7 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test for GPU.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).x() == 12.0);
     REQUIRE(kmeans.cluster(4).y() == 5.0);
 
-    kmeans.kmeans_gpu(1);
+    kmeans.gpu_kmeans(1,1,1);
 
     REQUIRE(kmeans.cluster(0).x() == 2.875);
     REQUIRE(kmeans.cluster(0).y() == 2.5);
@@ -27,7 +27,7 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test for GPU.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).x() == 10.5);
     REQUIRE(kmeans.cluster(4).y() == 4.5);
 
-    kmeans.kmeans_gpu(1);
+    kmeans.gpu_kmeans(1,1,1);
 
     REQUIRE(kmeans.cluster(0).x() == 2.875);
     REQUIRE(kmeans.cluster(0).y() == 2.5);
@@ -39,4 +39,21 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test for GPU.", "[kmeans]")
     REQUIRE(kmeans.cluster(3).y() == 9);
     REQUIRE(kmeans.cluster(4).x() == 10);
     REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
+}
+
+TEST_CASE("Kmeans: Kmeans circuit test, comparsion between parallel GPU sequential and sequential version.", "[kmeans] [gpu]"){
+    KmeansCircuit sequential, parallel_gpu;
+    //for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
+     for(std::string circuit_name : {"superblue18"}){
+        sequential.read_file("./input_files/"+circuit_name+".dat");
+        parallel_gpu.read_file("./input_files/"+circuit_name+".dat");
+        parallel_gpu.generate_clusters(100);
+        sequential.generate_clusters(100);
+        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel_gpu.kmeans.k_clusters().begin(), fixture::cluster_comparison));
+        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::element_comparison));
+        sequential.kmeans.kmeans(3);
+        parallel_gpu.kmeans.gpu_kmeans(3, 1, 1);
+        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::cluster_assignment_comparsion));
+        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel_gpu.kmeans.k_clusters().begin(), fixture::cluster_comparison));
+   }
 }

@@ -4,6 +4,7 @@
 #include <vector>
 #include <limits>
 #include <cmath>
+#include <omp.h>
 
 namespace clustering{
 
@@ -38,19 +39,24 @@ private:
     std::vector<Element> elements;
     std::vector<Cluster> clusters;
     void update_clusters_centers();
+    void p_update_clusters_centers();
     void clear_all_clusters(){for(auto & c : clusters)c.clear();}
     void assign_elements_2_clusters();
+    void p_assign_elements_2_clusters();
 public:
     Kmeans(){}
     const Cluster & cluster(unsigned int i) const {return clusters.at(i);}
     const Element & element(unsigned int i) const {return elements.at(i);}
     const std::vector<Element> & k_elements() const {return elements;}
+    const std::vector<Cluster> & k_clusters() const {return clusters;}
     void reserve_clusters(std::size_t size){clusters.reserve(size);}
     void reserve_elements(std::size_t size){elements.reserve(size);}
     void add_cluster(float pos_x, float pos_y){clusters.push_back(Cluster(pos_x, pos_y));}
     void add_element(float pos_x, float pos_y){elements.push_back(Element(pos_x, pos_y));}
     void kmeans(unsigned int iterations);
-    void kmeans_gpu(unsigned int iterations);
+    void p_kmeans(unsigned int iterations);
+    void gpu_kmeans(unsigned int iterations, unsigned int n_blocks, unsigned int n_threads_per_block);
+    void gpu_print_device_info();
 };
 
 }

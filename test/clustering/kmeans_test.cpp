@@ -43,8 +43,8 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
 }
 
 TEST_CASE("Kmeans: Kmeans circuit test.", "[kmeans] [parallel]"){
-    KmeansCircuit sequential, parallel;
     for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
+        KmeansCircuit sequential, parallel;
         sequential.read_file("./input_files/"+circuit_name+".dat");
         parallel.read_file("./input_files/"+circuit_name+".dat");
         parallel.generate_clusters(100);

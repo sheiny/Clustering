@@ -51,7 +51,7 @@ void clustering::Kmeans::p_update_clusters_centers(){
 
 void clustering::Kmeans::assign_elements_2_clusters(){
     for(auto element_it = elements.begin(); element_it != elements.end(); ++element_it){
-        element_it->cluster(std::numeric_limits<unsigned int>::max());
+        element_it->cluster(std::numeric_limits<std::size_t>::max());
         float best_cost = std::numeric_limits<float>::max();
         for(auto cluster_it = clusters.begin(); cluster_it != clusters.end(); ++cluster_it){
             float distance = std::abs(cluster_it->x() - element_it->x()) + std::abs(cluster_it->y() - element_it->y());
@@ -67,7 +67,7 @@ void clustering::Kmeans::assign_elements_2_clusters(){
 void clustering::Kmeans::p_assign_elements_2_clusters(){
 #pragma omp parallel for
     for(auto element_it = elements.begin(); element_it < elements.end(); ++element_it){
-        element_it->cluster(std::numeric_limits<unsigned int>::max());
+        element_it->cluster(std::numeric_limits<std::size_t>::max());
         float best_cost = std::numeric_limits<float>::max();
         for(auto cluster_it = clusters.begin(); cluster_it != clusters.end(); ++cluster_it){
             float distance = std::abs(cluster_it->x() - element_it->x()) + std::abs(cluster_it->y() - element_it->y());

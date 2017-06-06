@@ -11,26 +11,26 @@ namespace clustering{
 class Element{
 private:
     float pos_x, pos_y;
-    unsigned int cluster_best;
+    std::size_t cluster_best;
 public:
     Element(float pos_x, float pos_y):pos_x(pos_x), pos_y(pos_y){}
     float x() const {return pos_x;}
     float y() const {return pos_y;}
-    unsigned int cluster() const {return cluster_best;}
-    void cluster(unsigned int cluster_id){cluster_best = cluster_id;}
+    std::size_t cluster() const {return cluster_best;}
+    void cluster(std::size_t cluster_id){cluster_best = cluster_id;}
 };
 
 class Cluster{
 private:
     float pos_x, pos_y;
-    std::vector<unsigned int> elements;
+    std::vector<std::size_t> elements;
 public:
     Cluster(float pos_x, float pos_y):pos_x(pos_x), pos_y(pos_y){}
     float x() const {return pos_x;}
     float y() const {return pos_y;}
-    const std::vector<unsigned int> & cluster_elements() const {return elements;}
+    const std::vector<std::size_t> & cluster_elements() const {return elements;}
     void clear(){elements.clear();}
-    void insert_element(unsigned int element_id){elements.push_back(element_id);}
+    void insert_element(std::size_t element_id){elements.push_back(element_id);}
     void update_center(float x, float y){pos_x = x; pos_y = y;}
 };
 
@@ -45,8 +45,8 @@ private:
     void p_assign_elements_2_clusters();
 public:
     Kmeans(){}
-    const Cluster & cluster(unsigned int i) const {return clusters.at(i);}
-    const Element & element(unsigned int i) const {return elements.at(i);}
+    const Cluster & cluster(std::size_t i) const {return clusters.at(i);}
+    const Element & element(std::size_t i) const {return elements.at(i);}
     const std::vector<Element> & k_elements() const {return elements;}
     const std::vector<Cluster> & k_clusters() const {return clusters;}
     void reserve_clusters(std::size_t size){clusters.reserve(size);}
@@ -56,7 +56,6 @@ public:
     void kmeans(unsigned int iterations);
     void p_kmeans(unsigned int iterations);
     void gpu_kmeans(unsigned int iterations, unsigned int n_blocks, unsigned int n_threads_per_block);
-    void gpu_print_device_info();
 };
 
 }

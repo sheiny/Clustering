@@ -10,7 +10,7 @@ endif()
 
 find_package(CUDA QUIET)
 if(CUDA_FOUND)
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11" )
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch sm_35 -std=c++11" )
 endif()
 
 add_subdirectory(src)

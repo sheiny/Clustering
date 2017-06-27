@@ -1,14 +1,21 @@
 #include "kmeans.h"
 
 void clustering::Kmeans::kmeans(unsigned int iterations){
+    std::chrono::high_resolution_clock::time_point time_start, time_end;
+    time_start = std::chrono::high_resolution_clock::now();
     for(unsigned int i = 0; i < iterations; ++i){
         clear_all_clusters();
         assign_elements_2_clusters();
         update_clusters_centers();
     }
+    time_end = std::chrono::high_resolution_clock::now();
+    auto total_time = time_end - time_start;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms "<<std::endl;
 }
 
 void clustering::Kmeans::p_kmeans(unsigned int iterations){
+    std::chrono::high_resolution_clock::time_point time_start, time_end;
+    time_start = std::chrono::high_resolution_clock::now();
     for(unsigned int i = 0; i < iterations; ++i){
         clear_all_clusters();
         p_assign_elements_2_clusters();
@@ -16,6 +23,9 @@ void clustering::Kmeans::p_kmeans(unsigned int iterations){
             clusters.at(elements.at(i).cluster()).insert_element(i);
         p_update_clusters_centers();
     }
+    time_end = std::chrono::high_resolution_clock::now();
+    auto total_time = time_end - time_start;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms "<<std::endl;
 }
 
 void clustering::Kmeans::update_clusters_centers(){

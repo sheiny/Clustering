@@ -3,16 +3,58 @@
 #include <iostream>
 
 __global__
+void saxpy(int n, float a, float *x, float *y)
+{
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i < n) y[i] = a*x[i] + y[i];
+}
+
+void clustering::Kmeans::do_saxpy(){
+  int N = 1<<20;
+  float *x, *y, *d_x, *d_y;
+  x = (float*)malloc(N*sizeof(float));
+  y = (float*)malloc(N*sizeof(float));
+
+  cudaMalloc(&d_x, N*sizeof(float));
+  cudaMalloc(&d_y, N*sizeof(float));
+
+  for (int i = 0; i < N; i++) {
+    x[i] = 1.0f;
+    y[i] = 2.0f;
+  }
+
+  cudaMemcpy(d_x, x, N*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_y, y, N*sizeof(float), cudaMemcpyHostToDevice);
+
+  // Perform SAXPY on 1M elements
+  saxpy<<<(N+255)/256, 256>>>(N, 2.0f, d_x, d_y);
+
+  cudaMemcpy(y, d_y, N*sizeof(float), cudaMemcpyDeviceToHost);
+
+  float maxError = 0.0f;
+  for (int i = 0; i < N; i++)
+    maxError = max(maxError, abs(y[i]-4.0f));
+
+  cudaFree(d_x);
+  cudaFree(d_y);
+  free(x);
+  free(y);
+}
+
+__global__
 void gpu_assign_elements_2_clusters(const unsigned int n_e, const unsigned int n_c, const float * d_ex, const float * d_ey, const float * d_cx, const float * d_cy, std::size_t * d_c){
-   for(std::size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < n_e; i += blockDim.x * gridDim.x){ 
+    for(std::size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < n_e; i += blockDim.x * gridDim.x){
         float best_cost = CUDART_INF_F;
+        std::size_t best_cluster;
         for(std::size_t j = 0; j < n_c; ++j){
             float distance = fabsf(d_cx[j]-d_ex[i]) + fabsf(d_cy[j]-d_ey[i]);
             if(distance < best_cost){
                 best_cost = distance;
-                d_c[i] = j;
+                best_cluster = j;
             }
         }
+    __syncthreads();
+    d_c[i] = best_cluster;
     }
 }
 
@@ -73,6 +115,9 @@ void clustering::Kmeans::gpu_kmeans(unsigned int iterations, unsigned int n_bloc
         h_cy[i] = clusters.at(i).y();
     }
 
+    std::chrono::high_resolution_clock::time_point time_start, time_end;
+    time_start = std::chrono::high_resolution_clock::now();
+
     cudaMalloc(&d_ex, n_e*sizeof(float));
     cudaMalloc(&d_ey, n_e*sizeof(float));
     cudaMalloc(&d_cx, n_c*sizeof(float));
@@ -92,6 +137,10 @@ void clustering::Kmeans::gpu_kmeans(unsigned int iterations, unsigned int n_bloc
 
         gpu_update_clusters_centers(n_e, n_c, h_ex, h_ey, h_cx, h_cy, h_c);
     }
+
+    time_end = std::chrono::high_resolution_clock::now();
+    auto total_time = time_end - time_start;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms "<<std::endl;
 
     for(std::size_t i = 0; i < n_e; ++i){
         elements.at(i).cluster(h_c[i]);

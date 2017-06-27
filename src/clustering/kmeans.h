@@ -5,6 +5,8 @@
 #include <limits>
 #include <cmath>
 #include <omp.h>
+#include <chrono>
+#include <iostream>
 
 namespace clustering{
 
@@ -56,6 +58,7 @@ public:
     void kmeans(unsigned int iterations);
     void p_kmeans(unsigned int iterations);
     void gpu_kmeans(unsigned int iterations, unsigned int n_blocks, unsigned int n_threads_per_block);
+    void do_saxpy();
 };
 
 }

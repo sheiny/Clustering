@@ -42,7 +42,7 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
 }
 
-TEST_CASE("Kmeans: Kmeans circuit test.", "[kmeans] [parallel]"){
+TEST_CASE("Kmeans: Kmeans circuit test.", "[kmeans]"){
     for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
         KmeansCircuit sequential, parallel;
         sequential.read_file("./input_files/"+circuit_name+".dat");
@@ -55,5 +55,30 @@ TEST_CASE("Kmeans: Kmeans circuit test.", "[kmeans] [parallel]"){
         parallel.kmeans.p_kmeans(3);
         REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::cluster_assignment_comparsion));
         REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel.kmeans.k_clusters().begin(), fixture::cluster_comparison));
+        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::element_comparison));
+    }
+}
+
+TEST_CASE("Kmeans: Kmeans circuit test using open mp.", "[parallel]"){
+    for(unsigned int i = 0; i < 30; ++i){
+        for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
+            KmeansCircuit parallel;
+            parallel.read_file("./input_files/"+circuit_name+".dat");
+            std::cout<<circuit_name<<" ";
+            parallel.generate_clusters(100);
+            parallel.kmeans.p_kmeans(50);
+        }
+    }
+}
+
+TEST_CASE("Kmeans: Kmeans circuit test sequential.", "[sequential]"){
+    for(unsigned int i = 0; i < 30; ++i){
+        for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
+            KmeansCircuit sequential;
+            sequential.read_file("./input_files/"+circuit_name+".dat");
+            std::cout<<circuit_name<<" ";
+            sequential.generate_clusters(100);
+            sequential.kmeans.kmeans(50);
+        }
     }
 }

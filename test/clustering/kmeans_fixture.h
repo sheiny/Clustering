@@ -6,9 +6,9 @@
 #include <stdlib.h>
 
 namespace fixture{
-bool element_comparison(const clustering::Element & e1, const clustering::Element & e2);
-bool cluster_comparison(const clustering::Cluster & c1, const clustering::Cluster & c2);
 bool cluster_assignment_comparsion(const clustering::Element & e1, const clustering::Element & e2);
+bool cluster_comparison(const clustering::Cluster & c1, const clustering::Cluster & c2);
+bool element_comparison(const clustering::Element & e1, const clustering::Element & e2);
 } //namespace fixture
 
 class KmeansFixture {

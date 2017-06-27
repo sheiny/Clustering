@@ -54,5 +54,21 @@ TEST_CASE("Kmeans: Kmeans circuit test, comparsion between parallel GPU sequenti
         parallel_gpu.kmeans.gpu_kmeans(3, 15, 1024);
         REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::cluster_assignment_comparsion));
         REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel_gpu.kmeans.k_clusters().begin(), fixture::cluster_comparison));
+        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::element_comparison));
    }
 }
+
+TEST_CASE("Kmeans: Kmeans circuit test GPU.", "[gpu]"){
+    clustering::Kmeans k;
+    k.do_saxpy();//warm up GPU
+    for(unsigned int i = 0; i < 30; ++i){
+        for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
+            KmeansCircuit parallel_gpu;
+            parallel_gpu.read_file("./input_files/"+circuit_name+".dat");
+            std::cout<<circuit_name<<" ";
+            parallel_gpu.generate_clusters(100);
+            parallel_gpu.kmeans.gpu_kmeans(50, 15, 1024);
+        }
+    }
+}
+

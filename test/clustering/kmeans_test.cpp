@@ -42,20 +42,80 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
 }
 
-TEST_CASE("Kmeans: Kmeans circuit test.", "[kmeans]"){
+TEST_CASE("Kmeans: Resolve overflow.", "[overflow]"){
+    KmeansCircuit circuit;
+
+    circuit.kmeans.add_cluster(0, 0);
+
+    circuit.kmeans.add_element(3, 6);
+    circuit.kmeans.add_element(5, 1);
+    circuit.kmeans.add_element(7, 1);
+    circuit.kmeans.add_element(2, 3);
+    circuit.kmeans.add_element(1, 8);
+
+    circuit.kmeans.set_max_cluster_size(2);
+
+    circuit.kmeans.kmeans(5);
+
+    REQUIRE(circuit.kmeans.k_clusters().size() == 3);
+    std::vector<std::size_t> expected_sizes = {1, 2, 2};
+    std::vector<std::size_t> actual_clusters_sizes;
+    for(auto cluster : circuit.kmeans.k_clusters())
+        actual_clusters_sizes.push_back(cluster.cluster_elements().size());
+    REQUIRE(std::is_permutation(actual_clusters_sizes.begin(), actual_clusters_sizes.end(), expected_sizes.begin()));
+}
+
+TEST_CASE("Kmeans: Kmeans test on ICCAD 2015 circuits.", "[kmeans]"){
     for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
-        KmeansCircuit sequential, parallel;
-        sequential.read_file("./input_files/"+circuit_name+".dat");
-        parallel.read_file("./input_files/"+circuit_name+".dat");
-        parallel.generate_clusters(100);
-        sequential.generate_clusters(100);
-        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel.kmeans.k_clusters().begin(), fixture::cluster_comparison));
-        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::element_comparison));
-        sequential.kmeans.kmeans(3);
-        parallel.kmeans.p_kmeans(3);
-        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::cluster_assignment_comparsion));
-        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel.kmeans.k_clusters().begin(), fixture::cluster_comparison));
-        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel.kmeans.k_elements().begin(), fixture::element_comparison));
+        for(std::string policy : {"sequential", "parallel"}){
+            KmeansCircuit circuit;
+            circuit.read_file("./input_files/"+circuit_name+".dat");
+            circuit.kmeans.set_max_cluster_size(50);
+            const unsigned int number_of_elements(circuit.kmeans.k_elements().size());
+            circuit.generate_clusters(number_of_elements/50);
+
+            //Test overflow.
+            if(policy == "sequential")
+                circuit.kmeans.kmeans(1);
+            else
+                circuit.kmeans.p_kmeans(1);
+            bool overflow = false;
+            for(auto & cluster : circuit.kmeans.k_clusters())
+                if(cluster.cluster_elements().size() > 50)
+                    overflow = true;
+            REQUIRE(overflow == true);
+            overflow = false;
+            if(policy == "sequential")
+                circuit.kmeans.kmeans(5);
+            else
+                circuit.kmeans.p_kmeans(5);
+            for(auto & cluster : circuit.kmeans.k_clusters())
+                if(cluster.cluster_elements().size() > 50)
+                    overflow = true;
+            REQUIRE(overflow == false);
+            //Test if each element was assigned to a cluster.
+            unsigned int actual_number_of_elements = 0;
+            for(auto cluster : circuit.kmeans.k_clusters())
+                actual_number_of_elements += cluster.cluster_elements().size();
+            REQUIRE(actual_number_of_elements == number_of_elements);
+            //Test if each element is assigned to only one cluster.
+                std::vector<unsigned int> occurrences;
+                occurrences.resize(number_of_elements, 0);
+                for(auto cluster : circuit.kmeans.k_clusters())
+                    for(auto element : cluster.cluster_elements())
+                        occurrences.at(element) += 1;
+                bool one_to_one = true;
+                for(auto mapping : occurrences)
+                    if(mapping != 1)
+                        one_to_one = false;
+                REQUIRE(one_to_one == true);
+            //Test if there is no one empty cluster.
+                bool empty_clusters = false;
+                for(auto cluster : circuit.kmeans.k_clusters())
+                    if(cluster.cluster_elements().empty())
+                        empty_clusters = true;
+                REQUIRE(empty_clusters == false);
+        }
     }
 }
 
@@ -63,9 +123,10 @@ TEST_CASE("Kmeans: Kmeans circuit test using open mp.", "[parallel]"){
     for(unsigned int i = 0; i < 30; ++i){
         for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
             KmeansCircuit parallel;
+            parallel.kmeans.set_max_cluster_size(50);
             parallel.read_file("./input_files/"+circuit_name+".dat");
             std::cout<<circuit_name<<" ";
-            parallel.generate_clusters(100);
+            parallel.generate_clusters(parallel.kmeans.k_elements().size()/50);
             parallel.kmeans.p_kmeans(50);
         }
     }
@@ -75,9 +136,10 @@ TEST_CASE("Kmeans: Kmeans circuit test sequential.", "[sequential]"){
     for(unsigned int i = 0; i < 30; ++i){
         for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
             KmeansCircuit sequential;
+            sequential.kmeans.set_max_cluster_size(50);
             sequential.read_file("./input_files/"+circuit_name+".dat");
             std::cout<<circuit_name<<" ";
-            sequential.generate_clusters(100);
+            sequential.generate_clusters(sequential.kmeans.k_elements().size()/50);
             sequential.kmeans.kmeans(50);
         }
     }

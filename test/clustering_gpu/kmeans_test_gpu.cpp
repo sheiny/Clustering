@@ -1,74 +1,49 @@
 #include <catch.hpp>
 #include "../clustering/kmeans_fixture.h"
 
-TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test for GPU.", "[kmeans]")
-{
-    REQUIRE(kmeans.cluster(0).x() == 3.0);
-    REQUIRE(kmeans.cluster(0).y() == 3.0);
-    REQUIRE(kmeans.cluster(1).x() == 3.0);
-    REQUIRE(kmeans.cluster(1).y() == 8.0);
-    REQUIRE(kmeans.cluster(2).x() == 9.0);
-    REQUIRE(kmeans.cluster(2).y() == 2.0);
-    REQUIRE(kmeans.cluster(3).x() == 9.0);
-    REQUIRE(kmeans.cluster(3).y() == 8.0);
-    REQUIRE(kmeans.cluster(4).x() == 12.0);
-    REQUIRE(kmeans.cluster(4).y() == 5.0);
-
-    kmeans.gpu_kmeans(1,10,2);
-
-    REQUIRE(kmeans.cluster(0).x() == 2.875);
-    REQUIRE(kmeans.cluster(0).y() == 2.5);
-    REQUIRE(kmeans.cluster(1).x() == Approx(3.71429));
-    REQUIRE(kmeans.cluster(1).y() == Approx(7.64286));
-    REQUIRE(kmeans.cluster(2).x() == Approx(8.33333));
-    REQUIRE(kmeans.cluster(2).y() == 2);
-    REQUIRE(kmeans.cluster(3).x() == Approx(8.8));
-    REQUIRE(kmeans.cluster(3).y() == 9);
-    REQUIRE(kmeans.cluster(4).x() == 10.5);
-    REQUIRE(kmeans.cluster(4).y() == 4.5);
-
-    kmeans.gpu_kmeans(1,10,2);
-
-    REQUIRE(kmeans.cluster(0).x() == 2.875);
-    REQUIRE(kmeans.cluster(0).y() == 2.5);
-    REQUIRE(kmeans.cluster(1).x() == Approx(3.71429));
-    REQUIRE(kmeans.cluster(1).y() == Approx(7.64286));
-    REQUIRE(kmeans.cluster(2).x() == 8);
-    REQUIRE(kmeans.cluster(2).y() == 1);
-    REQUIRE(kmeans.cluster(3).x() == Approx(8.8));
-    REQUIRE(kmeans.cluster(3).y() == 9);
-    REQUIRE(kmeans.cluster(4).x() == 10);
-    REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
-}
-
-TEST_CASE("Kmeans: Kmeans circuit test, comparsion between parallel GPU sequential and sequential version.", "[kmeans]"){
+TEST_CASE("Kmeans: Kmeans GPU test on ICCAD 2015 circuits.", "[kmeans][gpu]"){
     for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
-        KmeansCircuit sequential, parallel_gpu;
-        sequential.read_file("./input_files/"+circuit_name+".dat");
-        parallel_gpu.read_file("./input_files/"+circuit_name+".dat");
-        parallel_gpu.generate_clusters(100);
-        sequential.generate_clusters(100);
-        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel_gpu.kmeans.k_clusters().begin(), fixture::cluster_comparison));
-        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::element_comparison));
-        sequential.kmeans.kmeans(3);
-        parallel_gpu.kmeans.gpu_kmeans(3, 15, 1024);
-        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::cluster_assignment_comparsion));
-        REQUIRE(std::equal(sequential.kmeans.k_clusters().begin(), sequential.kmeans.k_clusters().end(), parallel_gpu.kmeans.k_clusters().begin(), fixture::cluster_comparison));
-        REQUIRE(std::equal(sequential.kmeans.k_elements().begin(), sequential.kmeans.k_elements().end(), parallel_gpu.kmeans.k_elements().begin(), fixture::element_comparison));
-   }
-}
+        KmeansCircuit circuit;
+        circuit.read_file("./input_files/"+circuit_name+".dat");
+        circuit.kmeans.set_max_cluster_size(50);
+        const unsigned int number_of_elements(circuit.kmeans.k_elements().size());
+        circuit.generate_clusters(number_of_elements/50);
 
-TEST_CASE("Kmeans: Kmeans circuit test GPU.", "[gpu]"){
-    clustering::Kmeans k;
-    k.do_saxpy();//warm up GPU
-    for(unsigned int i = 0; i < 30; ++i){
-        for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
-            KmeansCircuit parallel_gpu;
-            parallel_gpu.read_file("./input_files/"+circuit_name+".dat");
-            std::cout<<circuit_name<<" ";
-            parallel_gpu.generate_clusters(100);
-            parallel_gpu.kmeans.gpu_kmeans(50, 15, 1024);
-        }
+
+        //Test overflow.
+        circuit.kmeans.gpu_kmeans(1, 10, 1024);
+        bool overflow = false;
+        for(auto & cluster : circuit.kmeans.k_clusters())
+            if(cluster.cluster_elements().size() > 50)
+                overflow = true;
+        REQUIRE(overflow == true);
+        overflow = false;
+        circuit.kmeans.gpu_kmeans(5, 10, 1024);
+        for(auto & cluster : circuit.kmeans.k_clusters())
+            if(cluster.cluster_elements().size() > 50)
+                overflow = true;
+        REQUIRE(overflow == false);
+        //Test if each element was assigned to a cluster.
+        unsigned int actual_number_of_elements = 0;
+        for(auto cluster : circuit.kmeans.k_clusters())
+            actual_number_of_elements += cluster.cluster_elements().size();
+        REQUIRE(actual_number_of_elements == number_of_elements);
+        //Test if each element is assigned to only one cluster.
+        std::vector<unsigned int> occurrences;
+        occurrences.resize(number_of_elements, 0);
+        for(auto cluster : circuit.kmeans.k_clusters())
+            for(auto element : cluster.cluster_elements())
+                occurrences.at(element) += 1;
+        bool one_to_one = true;
+        for(auto mapping : occurrences)
+            if(mapping != 1)
+                one_to_one = false;
+        REQUIRE(one_to_one == true);
+        //Test if there is no one empty cluster.
+        bool empty_clusters = false;
+        for(auto cluster : circuit.kmeans.k_clusters())
+            if(cluster.cluster_elements().empty())
+                empty_clusters = true;
+        REQUIRE(empty_clusters == false);
     }
 }
-

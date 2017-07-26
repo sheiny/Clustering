@@ -119,7 +119,7 @@ TEST_CASE("Kmeans: Kmeans test on ICCAD 2015 circuits.", "[kmeans]"){
     }
 }
 
-TEST_CASE("Kmeans: Kmeans circuit test using open mp.", "[parallel]"){
+/*TEST_CASE("Kmeans: Kmeans circuit test using open mp.", "[parallel]"){
     for(unsigned int i = 0; i < 30; ++i){
         for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
             KmeansCircuit parallel;
@@ -143,4 +143,4 @@ TEST_CASE("Kmeans: Kmeans circuit test sequential.", "[sequential]"){
             sequential.kmeans.kmeans(50);
         }
     }
-}
+}*/

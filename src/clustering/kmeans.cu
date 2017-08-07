@@ -159,16 +159,18 @@ void clustering::Kmeans::gpu_kmeans(unsigned int iterations, unsigned int n_bloc
 
         cudaMemcpy(&h_c[0], d_c, elements.size()*sizeof(std::size_t), cudaMemcpyDeviceToHost);
 
-        if(i % 5 == 0){
+/*        if(i % 5 == 0){
             gpu_clear_empty_clusters(h_c, h_cx, h_cy);
             gpu_resolve_overflows(h_c, h_cx, h_cy, max_cluster_size);
-        }
+        }*/
 
         gpu_update_clusters_centers(h_ex, h_ey, h_cx, h_cy, h_c);
     }
     time_end = std::chrono::high_resolution_clock::now();
     auto total_time = time_end - time_start;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms "<<std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms ";
+    gpu_clear_empty_clusters(h_c, h_cx, h_cy);
+    gpu_resolve_overflows(h_c, h_cx, h_cy, max_cluster_size);
 
     clusters.clear();
     clusters.reserve(h_cx.size());

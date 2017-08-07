@@ -4,6 +4,7 @@
 
 TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
 {
+    kmeans.set_max_cluster_size(42);
     REQUIRE(kmeans.cluster(0).x() == 3.0);
     REQUIRE(kmeans.cluster(0).y() == 3.0);
     REQUIRE(kmeans.cluster(1).x() == 3.0);
@@ -42,7 +43,7 @@ TEST_CASE_METHOD(KmeansFixture,"Kmeans: Kmeans test.", "[kmeans]")
     REQUIRE(kmeans.cluster(4).y() == Approx(4.33333));
 }
 
-TEST_CASE("Kmeans: Resolve overflow.", "[overflow]"){
+TEST_CASE("Kmeans: Resolve overflow.", "[kmeans]"){
     KmeansCircuit circuit;
 
     circuit.kmeans.add_cluster(0, 0);
@@ -55,7 +56,7 @@ TEST_CASE("Kmeans: Resolve overflow.", "[overflow]"){
 
     circuit.kmeans.set_max_cluster_size(2);
 
-    circuit.kmeans.kmeans(5);
+    circuit.kmeans.kmeans(1);
 
     REQUIRE(circuit.kmeans.k_clusters().size() == 3);
     std::vector<std::size_t> expected_sizes = {1, 2, 2};
@@ -80,15 +81,6 @@ TEST_CASE("Kmeans: Kmeans test on ICCAD 2015 circuits.", "[kmeans]"){
             else
                 circuit.kmeans.p_kmeans(1);
             bool overflow = false;
-            for(auto & cluster : circuit.kmeans.k_clusters())
-                if(cluster.cluster_elements().size() > 50)
-                    overflow = true;
-            REQUIRE(overflow == true);
-            overflow = false;
-            if(policy == "sequential")
-                circuit.kmeans.kmeans(5);
-            else
-                circuit.kmeans.p_kmeans(5);
             for(auto & cluster : circuit.kmeans.k_clusters())
                 if(cluster.cluster_elements().size() > 50)
                     overflow = true;
@@ -119,7 +111,7 @@ TEST_CASE("Kmeans: Kmeans test on ICCAD 2015 circuits.", "[kmeans]"){
     }
 }
 
-/*TEST_CASE("Kmeans: Kmeans circuit test using open mp.", "[parallel]"){
+TEST_CASE("Kmeans: Kmeans circuit test using open mp.", "[parallel]"){
     for(unsigned int i = 0; i < 30; ++i){
         for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
             KmeansCircuit parallel;
@@ -128,6 +120,7 @@ TEST_CASE("Kmeans: Kmeans test on ICCAD 2015 circuits.", "[kmeans]"){
             std::cout<<circuit_name<<" ";
             parallel.generate_clusters(parallel.kmeans.k_elements().size()/50);
             parallel.kmeans.p_kmeans(50);
+            std::cout<<" k "<<parallel.kmeans.k_clusters().size()<<std::endl;
         }
     }
 }
@@ -141,6 +134,7 @@ TEST_CASE("Kmeans: Kmeans circuit test sequential.", "[sequential]"){
             std::cout<<circuit_name<<" ";
             sequential.generate_clusters(sequential.kmeans.k_elements().size()/50);
             sequential.kmeans.kmeans(50);
+            std::cout<<" k "<<sequential.kmeans.k_clusters().size()<<std::endl;
         }
     }
-}*/
+}

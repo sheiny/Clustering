@@ -9,12 +9,12 @@ void Kmeans::kmeans(unsigned int iterations){
         assign_elements_2_clusters();
         update_clusters_centers();
     }
+    clear_empty_clusters();
+    resolve_overflows();
+    update_clusters_centers();
     time_end = std::chrono::high_resolution_clock::now();
     auto total_time = time_end - time_start;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms ";
-    clear_empty_clusters();
-    resolve_overflows();
-
 }
 
 void Kmeans::p_kmeans(unsigned int iterations){
@@ -25,12 +25,12 @@ void Kmeans::p_kmeans(unsigned int iterations){
         p_assign_elements_2_clusters();
         p_update_clusters_centers();
     }
+    clear_empty_clusters();
+    resolve_overflows();
+    p_update_clusters_centers();
     time_end = std::chrono::high_resolution_clock::now();
     auto total_time = time_end - time_start;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms ";
-    clear_empty_clusters();
-    resolve_overflows();
-
 }
 
 void Kmeans::update_clusters_centers(){

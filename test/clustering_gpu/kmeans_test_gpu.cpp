@@ -44,7 +44,7 @@ TEST_CASE("Kmeans: Kmeans GPU test on ICCAD 2015 circuits.", "[kmeans]"){
 TEST_CASE("Kmeans: Kmeans circuit test on gpu.", "[gpu]"){
     clustering::Kmeans k;
     k.do_saxpy();//warm up GPU
-    for(unsigned int i = 0; i < 30; ++i){
+    for(unsigned int i = 0; i < 10; ++i){
         for(std::string circuit_name : {"superblue18", "superblue4", "superblue16", "superblue5", "superblue1", "superblue3", "superblue10", "superblue7"}){
             KmeansCircuit gpu;
             gpu.kmeans.set_max_cluster_size(50);

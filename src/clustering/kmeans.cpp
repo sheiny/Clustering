@@ -4,120 +4,67 @@ namespace clustering{
 void Kmeans::kmeans(unsigned int iterations){
     std::chrono::high_resolution_clock::time_point time_start, time_end;
     time_start = std::chrono::high_resolution_clock::now();
+    update_rtree();
     for(unsigned int i = 1; i <= iterations; ++i){
         clear_all_clusters();
         assign_elements_2_clusters();
         update_clusters_centers();
+        clear_empty_clusters();
+        resolve_overflows();
+        update_rtree();
     }
-    clear_empty_clusters();
-    resolve_overflows();
-    update_clusters_centers();
     time_end = std::chrono::high_resolution_clock::now();
     auto total_time = time_end - time_start;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms ";
 }
 
-void Kmeans::p_kmeans(unsigned int iterations){
-    std::chrono::high_resolution_clock::time_point time_start, time_end;
-    time_start = std::chrono::high_resolution_clock::now();
-    for(unsigned int i = 1; i <= iterations; ++i){
-        clear_all_clusters();
-        p_assign_elements_2_clusters();
-        p_update_clusters_centers();
-    }
-    clear_empty_clusters();
-    resolve_overflows();
-    p_update_clusters_centers();
-    time_end = std::chrono::high_resolution_clock::now();
-    auto total_time = time_end - time_start;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(total_time).count()<<" ms ";
+void Kmeans::update_rtree(){
+    clusters_rtree.clear();
+    for(std::size_t c_index = 0; c_index < c_positions.size(); c_index++)
+        clusters_rtree.insert(rtree_node(c_positions.at(c_index), c_index));
 }
 
 void Kmeans::update_clusters_centers(){
-    for(auto & cluster : clusters){
-
-        if(!cluster.cluster_elements().empty()){
-            float x_c = 0, y_c = 0;
-            for(auto element_id : cluster.cluster_elements()){
-                x_c += elements.at(element_id).x();
-                y_c += elements.at(element_id).y();
-            }
-            x_c = x_c / cluster.cluster_elements().size();
-            y_c = y_c / cluster.cluster_elements().size();
-            cluster.update_center(x_c, y_c);
+    for(std::size_t c_index = 0; c_index < c_positions.size(); c_index++){
+        double x = 0, y = 0;
+        for(auto e_position : c_elements.at(c_index)){
+            x += e_position.x();
+            y += e_position.y();
         }
-    }
-}
-
-void Kmeans::p_update_clusters_centers(){
-#pragma omp parallel for
-    for(auto cluster_it = clusters.begin(); cluster_it < clusters.end(); ++cluster_it){
-        if(!cluster_it->cluster_elements().empty()){
-            float x_c = 0, y_c = 0;
-            for(auto element_id : cluster_it->cluster_elements()){
-                x_c += elements.at(element_id).x();
-                y_c += elements.at(element_id).y();
-            }
-            x_c = x_c / cluster_it->cluster_elements().size();
-            y_c = y_c / cluster_it->cluster_elements().size();
-            cluster_it->update_center(x_c, y_c);
-        }
+        x = x/c_elements.at(c_index).size();
+        y = y/c_elements.at(c_index).size();
+        c_positions.at(c_index) = point(x, y);
     }
 }
 
 void Kmeans::assign_elements_2_clusters(){
-    for(auto element_it = elements.begin(); element_it != elements.end(); ++element_it){
-        element_it->cluster(std::numeric_limits<std::size_t>::max());
-        float best_cost = std::numeric_limits<float>::max();
-        for(auto cluster_it = clusters.begin(); cluster_it != clusters.end(); ++cluster_it){
-            float distance = std::abs(cluster_it->x() - element_it->x()) + std::abs(cluster_it->y() - element_it->y());
-            if(distance < best_cost){
-                best_cost = distance;
-                element_it->cluster(std::distance(clusters.begin(), cluster_it));
-            }
-        }
-        clusters.at(element_it->cluster()).insert_element(std::distance(elements.begin(), element_it));
+    for(std::size_t e_index = 0; e_index < e_positions.size(); e_index++){
+        std::vector<rtree_node> closest_nodes;
+        clusters_rtree.query(boost::geometry::index::nearest(e_positions.at(e_index), 1), std::back_inserter(closest_nodes));
+        auto closest_cluster = closest_nodes.front();
+        c_elements.at(closest_cluster.second).push_back(e_positions.at(e_index));
     }
-}
-
-void Kmeans::p_assign_elements_2_clusters(){
-#pragma omp parallel for
-    for(auto element_it = elements.begin(); element_it < elements.end(); ++element_it){
-        element_it->cluster(std::numeric_limits<std::size_t>::max());
-        float best_cost = std::numeric_limits<float>::max();
-        for(auto cluster_it = clusters.begin(); cluster_it != clusters.end(); ++cluster_it){
-            float distance = std::abs(cluster_it->x() - element_it->x()) + std::abs(cluster_it->y() - element_it->y());
-            if(distance < best_cost){
-                best_cost = distance;
-                element_it->cluster(std::distance(clusters.begin(), cluster_it));
-            }
-        }
-    }
-    for(std::size_t i = 0; i < elements.size(); ++i)
-        clusters.at(elements.at(i).cluster()).insert_element(i);
-}
-
-void Kmeans::resolve_overflows(){
-    std::vector<Cluster> new_clusters;
-    for(auto & cluster : clusters)
-        if(cluster.cluster_elements().size() > max_cluster_size){
-            auto cluster_elements = cluster.cluster_elements();
-            new_clusters.insert(new_clusters.end(), std::ceil(cluster_elements.size()/(float)max_cluster_size), Cluster(cluster.x(), cluster.y()));
-            for(auto element_it = cluster_elements.begin(); element_it != cluster_elements.end(); element_it++)
-                new_clusters.at(new_clusters.size()-1-std::floor(std::distance(cluster_elements.begin(), element_it)/(float)max_cluster_size)).insert_element(*element_it);//improve this
-            cluster = new_clusters.back();
-            new_clusters.pop_back();
-        }
-    for(auto & new_cluster : new_clusters)
-        clusters.push_back(new_cluster);
-}
-
-bool empty_cluster(const clustering::Cluster & c){
-    return c.cluster_elements().empty();
 }
 
 void Kmeans::clear_empty_clusters(){
-    clusters.erase(std::remove_if(clusters.begin(), clusters.end(), empty_cluster), clusters.end());
+    for(int c_index = c_elements.size()-1; c_index >= 0; c_index--)
+        if(c_elements.at(c_index).empty()){
+            c_positions.erase(c_positions.begin()+c_index);
+            c_elements.erase(c_elements.begin()+c_index);
+        }
 }
 
+void Kmeans::resolve_overflows(){
+    for(int c_index = c_elements.size()-1; c_index >= 0; c_index--)
+        if(c_elements.at(c_index).size() > max_cluster_size){
+            std::vector<point> elements_overflow = c_elements.at(c_index);
+            c_elements.erase(c_elements.begin()+c_index);
+            for(std::size_t i = 0; i < elements_overflow.size(); i++){
+                if(i % max_cluster_size == 0)
+                    c_elements.push_back(std::vector<point>());
+                c_elements.back().push_back(elements_overflow.at(i));
+            }
+        }
+    c_positions.resize(c_elements.size());
+}
 }
